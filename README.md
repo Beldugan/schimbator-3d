@@ -3,6 +3,8 @@
 Aplicație web interactivă care simulează funcționarea unui schimbător de căldură tubular de tip **manta–fascicul de țevi (TEMA)** și **validează numeric** afirmațiile din lucrarea
 „*Schimbătoare de căldură tubulare de tip manta–fascicul de țevi: funcționare, tipuri constructive și provocări actuale*” (A. Beldugan, Universitatea „Ovidius” din Constanța).
 
+**▶ Aplicația online: https://beldugan.github.io/schimbator-3d/**
+
 ![Simulare 3D](docs/screenshot.png)
 
 ## Ce face
