@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simulator 3D – schimbător de căldură manta–fascicul de țevi</title>
+  <meta name="description" content="Simulare 3D interactivă a unui schimbător de căldură manta–fascicul (TEMA) și validarea numerică a lucrării EIT.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%273%27 y=%2710%27 width=%2726%27 height=%2712%27 rx=%276%27 fill=%27%233d5a80%27/%3E%3Cpath d=%27M7 16h18%27 stroke=%27%23e8590c%27 stroke-width=%273%27/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/style.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/" } }
+  </script>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Schimbător de căldură manta–fascicul de țevi</h1>
+      <p>Simulare 3D și validarea lucrării „Schimbătoare de căldură tubulare de tip manta–fascicul de țevi” · A. Beldugan</p>
+    </div>
+    <nav class="tabs">
+      <button class="active" data-tab="tab-sim">Simulare</button>
+      <button data-tab="tab-val">Validare lucrare</button>
+      <button data-tab="tab-about">Model și ipoteze</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="tab-sim" class="tab active">
+      <aside id="controls">
+        <div class="actions">
+          <button id="btnFig2" class="primary">Scenariul din Fig. 2</button>
+        </div>
+      </aside>
+
+      <div class="center">
+        <div id="viewport">
+          <div class="toolbar">
+            <button id="btnPlay">⏸ Pauză</button>
+            <button id="btnCut">Manta transparentă</button>
+            <button id="btnParticles">Particule</button>
+            <button id="btnView">Vedere inițială</button>
+            <button id="btnCFD" class="cfdbtn">▶ Analiză CFD 3D</button>
+            <label>Viteză <input type="range" id="speed" min="0.2" max="4" step="0.1" value="1"></label>
+          </div>
+          <div class="legend">
+            <span id="legendLo">20 °C</span><div class="ramp"></div><span id="legendHi">150 °C</span>
+          </div>
+          <div class="hint3d">Rotire: clic + tragere · Zoom: rotiță · Deplasare: clic dreapta</div>
+        </div>
+        <div class="chartbox">
+          <h3>Profilul temperaturilor de-a lungul aparatului</h3>
+          <canvas id="chart"></canvas>
+        </div>
+      </div>
+
+      <aside id="output">
+        <section id="cfdPanel" class="cfd">
+          <h3>Analiză CFD 3D – întregul ansamblu</h3>
+          <div class="cfdgrid">
+            <label>Rezoluție
+              <select id="cfdRes">
+                <option value="14">Rapidă (≈ 15 mii celule)</option>
+                <option value="18" selected>Standard (≈ 30 mii celule)</option>
+                <option value="24">Fină (≈ 70 mii celule)</option>
+              </select></label>
+            <label>Joc fascicul–manta <span id="cfdGapV">4 %</span>
+              <input type="range" id="cfdGap" min="0.01" max="0.10" step="0.005" value="0.04"></label>
+            <label>Rezistența hidraulică a fasciculului <span id="cfdKV">0,010</span>
+              <input type="range" id="cfdK" min="0.002" max="0.05" step="0.001" value="0.01"></label>
+          </div>
+          <div class="cfdbtns">
+            <button id="cfdStart" class="primary">Pornește</button>
+            <button id="cfdPause" disabled>Pauză</button>
+            <button id="cfdStop" disabled>Oprește</button>
+          </div>
+          <div id="cfdStatus" class="cfdstatus">Analiza nu a fost pornită.</div>
+          <div class="progress"><div id="cfdBar"></div></div>
+          <div id="cfdViewOpts" class="cfdopts" hidden>
+            <div class="seg"><button data-field="T" class="on">Temperatură</button><button data-field="V">Viteză</button></div>
+            <label><input type="checkbox" id="cfdLongi" checked> Plan longitudinal</label>
+            <label><input type="checkbox" id="cfdTrans" checked> Secțiune transversală</label>
+            <input type="range" id="cfdTransX" min="0" max="1" step="0.005" value="0.5">
+            <label><input type="checkbox" id="cfdTubes"> Țevi (temperaturi CFD)</label>
+            <label><input type="checkbox" id="cfdStream" checked> Linii de curent</label>
+            <label><input type="checkbox" id="cfdShow" checked> Afișare CFD (altfel: schematic)</label>
+          </div>
+          <div id="cfdResults"></div>
+          <canvas id="cfdConv" hidden></canvas>
+          <div id="cfdExport" class="cfdbtns" hidden>
+            <button id="cfdPNG">Exportă imagine</button>
+            <button id="cfdCSV">Exportă rezultate CSV</button>
+          </div>
+        </section>
+        <h3>Rezultate (model 1D)</h3>
+        <div id="results"></div>
+        <h3>Comparația schemelor (aceiași parametri)</h3>
+        <div id="compare"></div>
+        <h3>Observații inginerești</h3>
+        <ul id="warnings"></ul>
+      </aside>
+    </section>
+
+    <section id="tab-val" class="tab">
+      <div class="doc">
+        <h2>Validarea numerică a lucrării</h2>
+        <p>Fiecare afirmație cantitativă din articol este recalculată independent cu modelul aplicației (metoda ε–NTU, metoda ΔTml cu factorul F, integrare numerică pentru schema 1–2 și IAPWS-IF97 pentru proprietățile apei).</p>
+        <div class="row">
+          <div id="valSummary" class="summary"></div>
+          <button id="btnRunVal">Rulează din nou</button>
+          <button id="btnValFig2" class="primary">Vezi scenariul Fig. 2 în 3D</button>
+        </div>
+        <table id="valTable">
+          <thead><tr><th></th><th>Afirmație verificată</th><th>Valoare în lucrare</th><th>Valoare calculată</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-about" class="tab">
+      <div class="doc">
+        <h2>Modelul de calcul</h2>
+        <ul>
+          <li><b>Regim staționar</b>, proprietăți constante (cp mediu), fără pierderi către exterior, fără schimbare de fază.</li>
+          <li>Fluidul <b>cald</b> circulă prin manta, fluidul <b>rece</b> prin țevi (ca în Fig. 1 a lucrării).</li>
+          <li>Putere: <code>Q = ε · Cmin · (Th,in − Tc,in)</code>, cu ε calculat din NTU = UA/Cmin și Cr = Cmin/Cmax.</li>
+          <li>Verificare încrucișată: <code>Q = U · A · F · ΔTml</code>; pentru 1–2, F după Bowman–Mueller–Nagle.</li>
+          <li>Depuneri: <code>1/U<sub>ef</sub> = 1/U<sub>curat</sub> + R<sub>f</sub></code>.</li>
+          <li>Profilele de temperatură: soluții analitice pentru echicurent/contracurent; pentru 1–2, sistemul de EDO este integrat cu RK4 și rezolvat prin metoda tirului.</li>
+          <li>Aria: <code>A = N · π · d<sub>e</sub> · L</code>. Modelul 3D este schematic (numărul de țevi desenate nu urmărește N).</li>
+          <li>Particulele din manta urmează traseul în zigzag impus de șicanele segmentate (tăietură 25 %); culoarea indică temperatura locală.</li>
+        </ul>
+        <h2>Analiza CFD 3D (întregul ansamblu)</h2>
+        <ul>
+          <li><b>Domeniu:</b> geometria tridimensională a modelului – manta cilindrică, 5 șicane segmentate cu tăietură 25 %, racorduri circulare de intrare/ieșire, plăci tubulare, fascicul cu joc reglabil față de manta; camerele de distribuție și trecerile prin țevi sunt incluse prin bilanțul fiecărui canal de țevi.</li>
+          <li><b>Curgerea din manta:</b> metoda Lattice-Boltzmann D3Q19 (BGK), regim laminar, Mach mic; pereții cu condiție de aderență (bounce-back), intrare cu viteză impusă, ieșire cu presiune impusă.</li>
+          <li><b>Fasciculul de țevi:</b> mediu poros cu rezistență Darcy reglabilă (abordarea Patankar–Spalding pentru partea de manta); jocul fascicul–manta rămâne liber și produce curentul de ocolire.</li>
+          <li><b>Conservare:</b> după convergența curgerii, fluxurile pe fețe sunt proiectate pe un câmp cu divergență nulă (ecuația Poisson pentru corecția de presiune, gradienți conjugați), astfel încât masa și energia sunt conservate exact.</li>
+          <li><b>Transfer termic:</b> volume finite conservative (upwind) pentru fluidul din manta; schimb local cu fiecare canal de țevi, calibrat ca UA total să fie egal cu cel din modelul 1D; bilanț 1D pe fiecare canal de țevi, cu amestec în camera posterioară la schema 1–2.</li>
+          <li><b>Indicatori:</b> temperaturi de ieșire și putere (comparate cu ε–NTU), bilanț energetic, fracțiunea de ocolire, zonele moarte, viteza în ferestrele șicanelor, neuniformitatea temperaturii la ieșirea din țevi.</li>
+          <li><b>Limite:</b> rețea grosieră (15–70 mii celule), curgere laminară cu vâscozitate efectivă (fără model de turbulență), proporțiile geometrice ale modelului vizual (L/D ≈ 4,8); vitezele sunt scalate la diametrul mantalei estimat din numărul de țevi. Rezultatele sunt calitative–semicantitative; pentru proiectare se folosesc coduri CFD dedicate (ANSYS Fluent, OpenFOAM) sau metoda Bell–Delaware.</li>
+        </ul>
+        <h2>Bibliografie</h2>
+        <ol>
+          <li>S. Kakaç, H. Liu, A. Pramuanjaroenkij, <i>Heat Exchangers: Selection, Rating, and Thermal Design</i>, ed. 3, CRC Press, 2012.</li>
+          <li>R. K. Shah, D. P. Sekulić, <i>Fundamentals of Heat Exchanger Design</i>, Wiley, 2003.</li>
+          <li>TEMA, <i>Standards of the Tubular Exchanger Manufacturers Association</i>, ediția 2026.</li>
+          <li>T. L. Bergman, A. S. Lavine, F. P. Incropera, D. P. DeWitt, <i>Fundamentals of Heat and Mass Transfer</i>, ed. 7, Wiley, 2011.</li>
+          <li>IAPWS, <i>Revised Release on the IAPWS Industrial Formulation 1997 for the Thermodynamic Properties of Water and Steam</i>, 2007.</li>
+          <li>S. V. Patankar, D. B. Spalding, „A calculation procedure for the transient and steady-state behavior of shell-and-tube heat exchangers”, în <i>Heat Exchangers: Design and Theory Sourcebook</i>, Scripta Book Co., 1974.</li>
+          <li>T. Krüger et al., <i>The Lattice Boltzmann Method: Principles and Practice</i>, Springer, 2017.</li>
+        </ol>
+      </div>
+    </section>
+  </main>
+
+  <noscript>Aplicația necesită JavaScript și WebGL.</noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
